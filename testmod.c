@@ -6,11 +6,17 @@
  *      0.0: WIP
  */
 
-#include <linux/module.h>
+ #include <linux/kernel.h>
+ #include <linux/module.h>
+#include <linux/platform_device.h>
+#include <linux/pci.h>
+#include <linux/gpio.h>
+#include <linux/i2c.h>
+#include <linux/platform_data/i2c-gpio.h>
+#include <linux/gpio/machine.h>
 
 
-
-static struct qm2_data {
+struct qm2_data {
     struct list_head list;      // 0 8
     struct pci_dev *pci_dev;    // 16
     char *label;                // 24
@@ -35,6 +41,7 @@ static int get_next_i2c_adapter(void) {
             return i;
         i2c_put_adapter(adapter);
     }
+    return -ENODEV;
 }
 
 int direction_input(struct gpio_chip *gc, unsigned int offset) {
@@ -67,26 +74,25 @@ int direction_output(struct gpio_chip *gc, unsigned int offset, int value) {
     return 0;
 }
 
-.. aybe set multiple
+// maybe set single?
 int get_multiple(struct gpio_chip *gc, unsigned long *mask, unsigned long *bits) {
     struct qm2_data *data = container_of(gc, struct qm2_data, chip);
     u8 val;
 
     val = 7;
-    if (mask) {
+    if (*mask) {
         val = 6;
-        if (mask != 2)
+        if (*mask != 2)
             val = 0;
     }
     return (ioread8(data->remap_addr + 0xb40) >> val) & 1;
 }
 
 
-
-static int __init init(void) {
+static int __init test_init(void) {
     int ret;
     struct pci_dev *dev;
-    struct qm2_data data;
+    struct qm2_data *data;
     struct gpiod_lookup_table *lookup;
 
     while ((dev = pci_get_device(0x1b21, 0x2824, dev)) != NULL) {
@@ -104,21 +110,22 @@ static int __init init(void) {
         data->sda = 1;
         data->scl = 0;
         data->i2c_adapter_nr = get_next_i2c_adapter();
-        data->label = kasprintf("gpio-asm2824_%04x:%02x_%d", ??, ??, data->i2c_adapter_nr)
+	// TODO: Fix 0 0 
+        data->label = kasprintf(GFP_KERNEL, "gpio-asm2824_%04x:%02x_%d", 0, 0, data->i2c_adapter_nr);
         if (!data->label) {
             kfree(data);
             return -ENOMEM;
         }
         data->chip.label = data->label;
         data->chip.owner = THIS_MODULE;
-        data->chip.direction_input =    // asm2824_gpio_direction_input
-        data->chip.get_multiple =       // asm2824_gpio_get_value
-        data->chip.direction_output =   // asm2824_gpio_config
-        data->chip.set_multiple =       // asm2824_gpio_set_value
+        data->chip.direction_input =  NULL;  // asm2824_gpio_direction_input
+        data->chip.get_multiple =     NULL;  // asm2824_gpio_get_value
+        data->chip.direction_output =  NULL; // asm2824_gpio_config
+        data->chip.set_multiple =       NULL;// asm2824_gpio_set_value
         data->chip.base = -1;
         data->chip.ngpio = 2;
         
-        ret = gpiochip_add_data(data->chip, NULL);
+        ret = gpiochip_add_data(&data->chip, NULL);
         if (ret) {
             kfree(data->label);
             kfree(data);
@@ -129,7 +136,7 @@ static int __init init(void) {
         if (!data->plat_dev) {
             kfree(data->label);
             kfree(data);
-            gpiochip_remove(data->chip);
+            gpiochip_remove(&data->chip);
             return ret;
         }
 
@@ -137,17 +144,17 @@ static int __init init(void) {
         if (!data->plat_dev) {
             kfree(data->label);
             kfree(data);
-            gpiochip_remove(data->chip);
+            gpiochip_remove(&data->chip);
             kfree(data->plat_dev);
             return ret;
         }
         data->plat_data->udelay = 5; // Also all the bitfields are set to 0 by kzalloc
 
-        ret = platform_device_add_data(data->plat_dev, &data->plat_data, sizeof(i2c_gpio_platform_data))
+        ret = platform_device_add_data(data->plat_dev, &data->plat_data, sizeof(struct i2c_gpio_platform_data));
         if (ret) {
             kfree(data->label);
             kfree(data);
-            gpiochip_remove(data->chip);
+            gpiochip_remove(&data->chip);
             kfree(data->plat_dev);
             kfree(data->plat_data);
             return ret;
@@ -159,17 +166,17 @@ static int __init init(void) {
         if (!lookup) {
             kfree(data->label);
             kfree(data);
-            gpiochip_remove(data->chip);
+            gpiochip_remove(&data->chip);
             kfree(data->plat_dev);
             kfree(data->plat_data);
             return -ENOMEM;
         }
         
-        lookup->dev_id = kasprintf("i2c-gpio.%d"m data->i2c_adapter_nr);
+        lookup->dev_id = kasprintf(GFP_KERNEL, "i2c-gpio.%d", data->i2c_adapter_nr);
         if (!lookup->dev_id) {
             kfree(data->label);
             kfree(data);
-            gpiochip_remove(data->chip);
+            gpiochip_remove(&data->chip);
             kfree(data->plat_dev);
             kfree(data->plat_data);
             kfree(lookup);
@@ -188,26 +195,28 @@ static int __init init(void) {
         lookup->table[1].flags = 0;
         gpiod_add_lookup_table(lookup);
 
-        ret = platform_device_register(data->plat_dev)
+        ret = platform_device_register(data->plat_dev);
         if (ret) {
             kfree(data->label);
             kfree(data);
-            gpiochip_remove(data->chip);
+            gpiochip_remove(&data->chip);
             kfree(data->plat_dev);
             kfree(data->plat_data);
             kfree(lookup->dev_id);
             kfree(lookup);
             return -ENOMEM;
         }
+    }
+    return 0;
 }
 
-static void __exit exit(void) {
-
+static void __exit test_exit(void) {
+    return;
 }
 
 
-module_init(init);
-module_exit(exit);
+module_init(test_init);
+module_exit(test_exit);
 
 MODULE_DESCRIPTION("QNAP QM2 I2C Driver");
 MODULE_VERSION("0.0");
