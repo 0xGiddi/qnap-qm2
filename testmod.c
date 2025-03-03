@@ -6,8 +6,8 @@
  *      0.0: WIP
  */
 
- #include <linux/kernel.h>
- #include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/module.h>
 #include <linux/platform_device.h>
 #include <linux/pci.h>
 #include <linux/gpio.h>
@@ -44,49 +44,72 @@ static int get_next_i2c_adapter(void) {
     return -ENODEV;
 }
 
-int direction_input(struct gpio_chip *gc, unsigned int offset) {
+
+int set_direction(struct pci_dev *gc, unsigned int offset, int value)
+{
+    u8 tmp;
+    u8 mask = 1;
     struct qm2_data *data = container_of(gc, struct qm2_data, chip);
-    u8 val = 0x7f;
+    
 
-    if (offset) {
-        val = 0xfe;
-        if (offset == 1)
-            val = 0xbf;
+    pci_write_config_byte(data->pci_dev, 0x0fff, 1);
+    if (offset == 1) {
+            mask = 1 << data->sda;
+    } else {
+        mask = 1 << data->scl;
     }
-    iowrite8(ioread8(data->remap_addr + 0xb40) & val, data->remap_addr);
-    return 0;
-}
-
-int direction_output(struct gpio_chip *gc, unsigned int offset, int value) {
-    struct qm2_data *data = container_of(gc, struct qm2_data, chip);
-    u8 val = 0x80;
-    u8 tmp = 0x80;
-
-    if (offset) {
-        val = 1;
-        if (offset == 1)
-            val = 0x40;
-    }
-    tmp = val | ioread8(data->remap_addr + 0xb40);
+    
+    pci_read_config_byte(data->pci_dev, 0x0920, &tmp);
+    
     if (value)
-        tmp = ioread8(data->remap_addr + 0xb40) & ~val;
-    iowrite8(tmp, data->remap_addr);
-    return 0;
+        tmp = ~mask & tmp;
+    else
+        tmp = mask | tmp;
+    
+    pci_write_config_byte(daa->pci_dev, 0x0920, tmp);
 }
 
-// maybe set single?
-int get_multiple(struct gpio_chip *gc, unsigned long *mask, unsigned long *bits) {
+int get(struct gpio_chip *gc, unsigned int offset) {
+    u8 tmp;
+    u8 shift = 0;
     struct qm2_data *data = container_of(gc, struct qm2_data, chip);
-    u8 val;
+    
+    if (offset == 1)
+        shift = data->sda_pin;
+    else
+        shift = data->scl_pin;
 
-    val = 7;
-    if (*mask) {
-        val = 6;
-        if (*mask != 2)
-            val = 0;
-    }
-    return (ioread8(data->remap_addr + 0xb40) >> val) & 1;
+    pci_read_config_byte(data->pci_dev, 0x0930, &tmp);
+    return (tmp >> shift) & 1;
 }
+
+void set(struct gpio_chip *gc, unsigned int offset, int value) {
+    u8 tmp;
+    u8 mask = 1;
+    struct qm2_data *data = container_of(gc, struct qm2_data, chip);
+
+    if (offset == 1)
+        mask = 1 << data->sda_pin;
+    else
+        mask = 1 << data->scl_pin;
+    
+    pci_read_config_byte(data->pci_dev, 0x0928, &tmp);
+    if (value)
+        tmp = tmp | mask;
+    else
+        tmp = tmp & ~mask;
+
+    pci_write_config_byte(data->pci_dev, 0x0928, tmp);
+}
+
+int direction_input(struct gpio_chip *gc, unsigned int offset) {
+    return set_direction(gc, offset, 1);
+}
+
+int direction_output(struct pci_dev *gc, unsigned int offset, int value) {
+    return set_direction(gc, offset, value);
+}
+
 
 
 static int __init test_init(void) {
@@ -118,10 +141,10 @@ static int __init test_init(void) {
         }
         data->chip.label = data->label;
         data->chip.owner = THIS_MODULE;
-        data->chip.direction_input =  NULL;  // asm2824_gpio_direction_input
-        data->chip.get_multiple =     NULL;  // asm2824_gpio_get_value
-        data->chip.direction_output =  NULL; // asm2824_gpio_config
-        data->chip.set_multiple =       NULL;// asm2824_gpio_set_value
+        data->chip.direction_input = direction_input;  // asm2824_gpio_direction_input
+        data->chip.get= get;  // asm2824_gpio_get_value
+        data->chip.direction_output = direction_output; // asm2824_gpio_config
+        data->chip.set = set;// asm2824_gpio_set_value
         data->chip.base = -1;
         data->chip.ngpio = 2;
         
