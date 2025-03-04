@@ -66,7 +66,7 @@ int set_direction(struct pci_dev *gc, unsigned int offset, int value)
     else
         tmp = mask | tmp;
     
-    pci_write_config_byte(daa->pci_dev, 0x0920, tmp);
+    pci_write_config_byte(data->pci_dev, 0x0920, tmp);
 }
 
 int get(struct gpio_chip *gc, unsigned int offset) {
