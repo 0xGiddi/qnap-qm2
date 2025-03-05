@@ -8,6 +8,19 @@
  - Possible ICD/ICP pins on edge
   
 
+  # pINS ON edge
+1 mclr
+2 vdd
+3 gnd
+4 icspdat
+5 icspclk
+
+on side of microship, LTR
+
+
+
+
+
 # Reverse engineering 
 
 ## From qm2-i2c.ko
