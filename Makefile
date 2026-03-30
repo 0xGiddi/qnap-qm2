@@ -1,10 +1,19 @@
-obj-m += qm2mod.o
+MODULE_NAME := qm2mod
+DKMS_CONF_FILE := dkms.conf
+MODULE_VERSION := $(shell grep "^PACKAGE_VERSION" $(DKMS_CONF_FILE) | sed 's/.*= *//')
 
-KERNEL_DIR ?= /lib/modules/$(shell uname -r)/build
-CFLAGS_qm2mod.o := -DDEBUG
+.PHONY: all install uninstall
 
 all:
-	$(MAKE) -C $(KERNEL_DIR) M=$$PWD modules
+	@echo "Available targets:"
+	@echo "  install   - Install the DKMS module"
+	@echo "  uninstall - Uninstall the DKMS module"
 
-clean:
-	$(MAKE) -C $(KERNEL_DIR) M=$$PWD clean
+install:
+	dkms install .
+
+uninstall:
+	dkms remove -m $(MODULE_NAME) -v $(MODULE_VERSION) --all
+
+#debpackage:
+#	dpkg-buildpackage -rfakeroot -tc
