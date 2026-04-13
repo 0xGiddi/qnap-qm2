@@ -3,6 +3,7 @@
 - [Installation Instructions](#installation-instructions)
   - [Install using DKMS](#install-using-dkms)
   - [Installing on TrueNAS Scale](#installing-on-truenas-scale)
+    - [Compiling using Nader Eloshaiker's Docker container](#compiling-using-nader-eloshaikers-docker-container)
     - [Install Procedure](#install-procedure)
     - [Uninstall Procedure](#uninstall-procedure)
   - [Autoload on startup with Systemd](#autoload-on-startup-with-systemd)
@@ -59,9 +60,16 @@ Before installing, check the *Supported Models* table to confirm your card is co
 
 > **❗ Important:** Updates to the TrueNAS OS will overwrite any changes made during installation, requiring the process to be repeated.
 
-> **❗ Important:** TrueNAS Scale is a highly restricted operating system that does not support modifications to the host OS environment. Installing this module requires enabling **Developer Mode**, which allows installation of build tools and modification of the root filesystem. However, enabling Developer Mode voids official support from iXsystems. For more information, refer to the [TrueNAS documentation](https://www.truenas.com/docs/scale/scaletutorials/systemsettings/advanced/developermode/).
+#### Compiling using Nader Eloshaiker's Docker container
+
+Visit [https://github.com/nader-eloshaiker/truenas-qnap-qm2-module](https://github.com/nader-eloshaiker/truenas-qnap-qm2-module) and follow the instructions to build the module.
+This method has the benefit that it does not require a local shell and does not require enabling TrueNAS "Developer-Mode"
+> Note: The repository and code linked above in this section are not controlled by me and should be verified independently.
 
 #### Install Procedure
+
+> **❗ Important:** TrueNAS Scale is a highly restricted operating system that does not support modifications to the host OS environment. Installing this module requires enabling **Developer Mode**, which allows installation of build tools and modification of the root filesystem. However, enabling Developer Mode voids official support from iXsystems. For more information, refer to the [TrueNAS documentation](https://www.truenas.com/docs/scale/scaletutorials/systemsettings/advanced/developermode/).
+
 
 1. Connect to TrueNAS via the web console, SSH, or the local Linux shell.
 2. Run `sudo install-dev-tools` to disable read protection on the root filesystem and install required build tools.
