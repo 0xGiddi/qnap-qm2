@@ -203,7 +203,7 @@ All models in the table below use an I2C bus on their PCIe switch chip and are s
 | QM2-2P410G2T  | 2 | ✅ |
 | QM2-2P-244A-A1  | 2 | ✅ | 
 | QM2-4P-384  | 4 | ✅ | 
-| QM2-2S10G1TB02 | — | — |  ❌ **Not supported**, EC-based architecture |
+| QM2-2S10G1TB02 | ❌ | ❌ |  ❌ **Not supported**, EC-based architecture |
 | "Generic" QM2-2P| 2 | ✅ | Slots 1,2 swapped in hardware, corrected by driver |
 | "Generic" QM2-4P|4 | ✅ | 
 
