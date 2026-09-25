@@ -1194,7 +1194,7 @@ module_init(qm2mod_init);
 module_exit(qm2mod_exit);
 
 MODULE_DESCRIPTION("QNAP QM2 expansion card driver");
-MODULE_VERSION("1.0");
+MODULE_VERSION("1.1");
 MODULE_AUTHOR("0xGiddi");
 MODULE_LICENSE("GPL");
 
